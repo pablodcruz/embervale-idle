@@ -1,0 +1,17 @@
+# Godot-generated files
+.godot/
+*.import
+
+# Local tools and downloaded editors
+.tools/
+
+# Exports and local saves
+builds/
+*.pck
+*.log
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

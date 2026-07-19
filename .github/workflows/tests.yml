@@ -1,0 +1,23 @@
+name: Godot tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  simulator:
+    runs-on: ubuntu-latest
+    container:
+      image: barichello/godot-ci:4.7.1
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Import project
+        run: godot --headless --editor --path . --quit
+
+      - name: Run deterministic simulator tests
+        run: godot --headless --path . --script res://tests/test_simulator.gd
+
+      - name: Smoke-test main scene
+        run: godot --headless --path . --quit-after 2
