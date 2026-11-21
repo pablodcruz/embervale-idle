@@ -6,8 +6,9 @@ func _init() -> void:
 	_test_complete_plan(failures)
 	_test_chunking_equivalence(failures)
 	_test_pause(failures)
+	preload("res://tests/save_regression.gd").run(failures)
 	if failures.is_empty():
-		print("PASS: simulator tests")
+		print("PASS: simulator and save tests")
 		quit(0)
 	else:
 		for failure in failures:
