@@ -47,7 +47,10 @@ The test suite currently verifies:
 
 - exact completion and rewards for the starter plan;
 - equivalent results when time is simulated in one large block or many small blocks;
-- paused plans do not consume time or grant rewards.
+- paused plans do not consume time or grant rewards;
+- staged save writes, backup recovery and preservation of damaged or newer saves.
+
+Local saves keep the previous committed generation as `embervale_save.json.bak` next to the primary file. If the primary is truncated, the game loads that backup. If neither copy is usable, the session is temporary: restore your files and restart, or use **Reset Prototype** to clear local progress and start over.
 
 ## Design principle
 

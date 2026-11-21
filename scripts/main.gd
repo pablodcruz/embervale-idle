@@ -22,6 +22,7 @@ var plan_button: Button
 var pause_button: Button
 var offline_banner: PanelContainer
 var offline_label: RichTextLabel
+var saving_enabled := true
 var save_timer := 0.0
 var elapsed_visual := 0.0
 
@@ -31,6 +32,7 @@ func _ready() -> void:
 	_build_interface()
 	var capture_preview := "--capture-preview" in OS.get_cmdline_user_args()
 	if capture_preview:
+		saving_enabled = false
 		state = GameContent.new_state()
 		_append_report("Welcome to Embervale. Plan your first journey.")
 	else:
@@ -51,21 +53,28 @@ func _process(delta: float) -> void:
 	save_timer += delta
 	if save_timer >= 5.0:
 		save_timer = 0.0
-		SaveSystem.save_game(state)
+		_save_progress()
 
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST and not state.is_empty():
-		SaveSystem.save_game(state)
+		_save_progress()
 		get_tree().quit()
 
 
 func _load_or_create_state() -> void:
-	state = SaveSystem.load_game()
-	if state.is_empty() or int(state.get("version", 0)) != 1:
+	var loaded := SaveSystem.load_game()
+	if loaded.status not in [SaveSystem.Status.PRIMARY, SaveSystem.Status.BACKUP]:
+		saving_enabled = loaded.status == SaveSystem.Status.MISSING
 		state = GameContent.new_state()
-		_append_report("Welcome to Embervale. Plan your first journey.")
+		if saving_enabled:
+			_append_report("Welcome to Embervale. Plan your first journey.")
+		else:
+			_append_report("Could not load your save. Files kept; saving is off until you restore the files and restart, or reset the prototype.")
 		return
+	state = loaded.state
+	if loaded.status == SaveSystem.Status.BACKUP:
+		_append_report("Recovered your previous save from backup.")
 	var last_saved := float(state.get("last_saved_unix", 0.0))
 	var now := Time.get_unix_time_from_system()
 	var offline_seconds := clampf(now - last_saved, 0.0, GameContent.OFFLINE_CAP_SECONDS)
@@ -346,7 +355,7 @@ func _update_interface() -> void:
 func _queue_plan() -> void:
 	if IdleSimulator.queue_starter_plan(state, 10):
 		_append_report("Journey queued: Whisperwood supply run.")
-		SaveSystem.save_game(state)
+		_save_progress()
 
 
 func _toggle_pause() -> void:
@@ -365,15 +374,22 @@ func _simulate_offline() -> void:
 	_show_offline_report(600.0, gained_logs, gained_xp, events)
 	for event in events:
 		_append_report(event)
-	SaveSystem.save_game(state)
+	_save_progress()
+
+
+func _save_progress() -> bool:
+	return saving_enabled and SaveSystem.save_game(state)
 
 
 func _save_now() -> void:
-	_append_report("Progress saved locally." if SaveSystem.save_game(state) else "Save failed.")
+	_append_report("Progress saved locally." if _save_progress() else "Save failed.")
 
 
 func _reset_prototype() -> void:
-	SaveSystem.delete_save()
+	if not SaveSystem.delete_save():
+		_append_report("Reset failed. Could not clear every save file.")
+		return
+	saving_enabled = true
 	state = GameContent.new_state()
 	report_label.clear()
 	_append_report("Prototype reset. Embervale awaits a new plan.")
